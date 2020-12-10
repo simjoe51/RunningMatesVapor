@@ -1,14 +1,6 @@
 import Fluent
 import Vapor
 
-//struct for creating account without ID
-struct postAccount: Content {
-    var email: String
-    var fullName: String
-    var password: String
-    var type: String
-}
-
 //Struct for login request
 struct Login: Content {
     var email: String
@@ -16,6 +8,8 @@ struct Login: Content {
 }
 
 func routes(_ app: Application) throws {
+    
+    let accountController = AccountController()
     app.get { req in
         return "It works!"
     }
@@ -24,31 +18,23 @@ func routes(_ app: Application) throws {
         Account.query(on: req.db).all()
     }
     
-    app.get("login") { req -> String in
-        let login = try req.content.decode(Login.self)
-        //if the values returned here equal the values stored in the database for that email address, return the ID associated with the account
-        return "hi"
-    }
-    
-    app.post("createaccount") { req -> String in
-        //attempt to decode the returned data
-        let account = try req.content.decode(postAccount.self)
-        
-        //first check to see if an account with the requested credentials exists
-        Account.query(on: req.db).filter(\.$email == account.email).first()
+   // app.get("login") { req -> String in
+      //  let userData = try accountController.login(req: req)
+      //  let enteredData = try req.content.decode(Account.loginCheck.self)
+        //let decodedUserData = userData.map { Account.loginCheck()
+        //    return
+       // }
+       // if userData.map(to: Account.loginCheck.self) == enteredData.password {
             
-
+       // }
+      //  return "hi"
+    //}
+    
+    app.post("createaccount") { req -> EventLoopFuture<Account.idOut> in
         
-        //generate a unique identifier for the account that can be used as a password
-        let id = UUID()
-        let finalAccount = Account(id: id, fullName: account.fullName, email: account.email, password: account.password, type: account.type)
-        
-        //save the account to ze database
-        finalAccount.save(on: req.db)
-        //Print to the console and perform the action of creating the account
-        print("Creating account with the name: ", account.fullName)
-        
-        return finalAccount.id!.uuidString
+        //Pass the request to the newAccount method
+        let returnData = try accountController.newAccount(req: req)
+        return returnData
     }
 
     try app.register(collection: TodoController())
