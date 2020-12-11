@@ -9,18 +9,21 @@ import Fluent
 import Vapor
 
 final class Account: Model, Content {
+    typealias IDValue = String?
+    
+    
     //Name of table or collection
     static let schema = "accounts"
     
     //Unique identifier for this account
-    @ID(key: .id)
-    var id: UUID?
+    @ID(key: "email")
+    var email: String?
     
     //Account holder's details
     @Field(key: "fullName")
     var fullName: String
-    @Field(key: "email")
-    var email: String
+    @Field(key: "id")
+    var id: UUID
     @Field(key: "password")
     var password: String
     @Field(key: "type")
@@ -74,6 +77,6 @@ struct AccountController {
         }
         return Account.find(email, on: req.db)
             .unwrap(or: Abort(.notFound))
-            .map { Account.loginCheck(password: $0.password!.uuidString, email: $0.email)}
+            .map { Account.loginCheck(password: $0.password, id: $0.id!)}
     }
 }
