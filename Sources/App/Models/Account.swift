@@ -9,21 +9,19 @@ import Fluent
 import Vapor
 
 final class Account: Model, Content {
-    typealias IDValue = String?
-    
     
     //Name of table or collection
     static let schema = "accounts"
     
     //Unique identifier for this account
-    @ID(key: "email")
-    var email: String?
+    @ID(key: .id)
+    var id: UUID?
     
     //Account holder's details
     @Field(key: "fullName")
     var fullName: String
-    @Field(key: "id")
-    var id: UUID
+    @Field(key: "email")
+    var email: String
     @Field(key: "password")
     var password: String
     @Field(key: "type")
@@ -53,7 +51,7 @@ final class Account: Model, Content {
     
     //Constructor for new account with all properties set
     init(id: UUID?, fullName: String, email: String, password: String, type: String) {
-        self.id = id
+        self.id = id!
         self.fullName = fullName
         self.email = email
         self.password = password
@@ -61,22 +59,59 @@ final class Account: Model, Content {
     }
 }
 
+enum AccountError: Error {
+    case couldNotUnwrap
+    case badPassword
+}
+
 struct AccountController {
     //Create new account. NEED TO CHECK IF AN ACCOUNT ALREADY EXISTS AND THROW ERROR IF SO
     func newAccount(req: Request) throws -> EventLoopFuture<Account.idOut> {
         let input = try req.content.decode(Account.postAccount.self)
-        let id = UUID()
-        let account = Account(id: id, fullName: input.fullName, email: input.email, password: input.password, type: input.type)
-        return account.save(on: req.db)
-            .map { Account.idOut(id: account.id!.uuidString)}
+        
+        //check to see if account already exists
+        return Account.query(on: req.db)
+            .filter(\.$email == input.email)
+            .first().map { checkAccount -> Account.idOut in
+                if checkAccount == nil {
+                    let id = UUID()
+                    let account = Account(id: id, fullName: input.fullName, email: input.email, password: input.password, type: input.type)
+                    return account.save(on: req.db)
+                        .map { Account.idOut(id: account.id!) }
+                } else {
+                    return Account.idOut(id: UUID("00000000-0000-0000-0000-000000000000")!)
+                }
+            }
+        
+        
     }
     
-    func login(req: Request) throws -> EventLoopFuture<Account.loginCheck> {
+    func login(req: Request) throws -> EventLoopFuture<Account.idOut?> {
         guard let email = req.parameters.get("email", as: String.self) else {
             throw Abort(.badRequest)
+            print("Error decoding email")
         }
-        return Account.find(email, on: req.db)
-            .unwrap(or: Abort(.notFound))
-            .map { Account.loginCheck(password: $0.password, id: $0.id!)}
+        
+        guard let password = req.parameters.get("password", as: String.self) else {
+            throw Abort(.badRequest)
+            print("error decoding password")
+        }
+        
+        return Account.query(on: req.db)
+            .filter(\.$email == email)
+            .filter(\.$password == password)
+            .first().map { account in
+                if account == nil {
+                    return Account.idOut(id: UUID("00000000-0000-0000-0000-000000000000")!)
+                } else {
+                    return Account.idOut(id: (account?.id)!)
+                }
+            }
+        
+       // return accountForRequest.map {Account.idOut(id: , error: nil)}
+      //  return Account.find(email, on: req.db)
+        //    .unwrap(or: Abort(.notFound))
+         //   .map { Account.loginCheck(password: $0.password, id: $0.id!)}
     }
 }
+ 

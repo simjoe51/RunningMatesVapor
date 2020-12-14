@@ -18,17 +18,11 @@ func routes(_ app: Application) throws {
         Account.query(on: req.db).all()
     }
     
-   // app.get("login") { req -> String in
-      //  let userData = try accountController.login(req: req)
-      //  let enteredData = try req.content.decode(Account.loginCheck.self)
-        //let decodedUserData = userData.map { Account.loginCheck()
-        //    return
-       // }
-       // if userData.map(to: Account.loginCheck.self) == enteredData.password {
-            
-       // }
-      //  return "hi"
-    //}
+    app.get("login") { req -> EventLoopFuture<Account.idOut> in
+        return try accountController.login(req: req).map {idOut in
+                return Account.idOut(id: idOut!.id)
+        }
+    }
     
     app.post("createaccount") { req -> EventLoopFuture<Account.idOut> in
         
