@@ -12,7 +12,7 @@ public func configure(_ app: Application) throws {
         port: 5432,
         username: "vapor",
         password: "vapor",
-        database: "runningmates"
+        database: "penpals"
     ), as: .psql)
 
     app.migrations.add(CreateTodo())

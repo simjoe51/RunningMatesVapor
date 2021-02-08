@@ -20,12 +20,12 @@ final class Account: Model, Content {
     //Account holder's details
     @Field(key: "fullName")
     var fullName: String
-    @Field(key: "email")
-    var email: String
-    @Field(key: "password")
-    var password: String
-    @Field(key: "type")
-    var type: String
+    @Field(key: "phoneNumber")
+    var phoneNumber: String
+    @Field(key: "age")
+    var age: String
+    @Field(key: "publicKey")
+    var publicKey: String
     
     //creation method for new, empty account
     init() { }
@@ -37,31 +37,31 @@ final class Account: Model, Content {
     
     //Struct to get parameters to create new account
     struct postAccount: Content {
-        var email: String
         var fullName: String
-        var password: String
-        var type: String
+        var phoneNumber: String
+        var age: String
+        var publicKey: String
     }
     
-    //struct that returns the password and ID for a given account in order for it to be checked against the one entered
-    struct loginCheck: Content {
-        var password: String
-        var id: UUID
+    //Struct to check for new partners
+    struct postID: Content {
+        var UUID: Data
+    }
+    
+    //struct to return partner UUID and their public key
+    struct partnerOut: Content {
+        var ID: UUID
+        var publicKey: Data
     }
     
     //Constructor for new account with all properties set
-    init(id: UUID?, fullName: String, email: String, password: String, type: String) {
+    init(id: UUID?, fullName: String, phoneNumber: String, age: String, publicKey: String) {
         self.id = id!
         self.fullName = fullName
-        self.email = email
-        self.password = password
-        self.type = type
+        self.phoneNumber = phoneNumber
+        self.age = age
+        self.publicKey = publicKey
     }
-}
-
-enum AccountError: Error {
-    case couldNotUnwrap
-    case badPassword
 }
 
 struct AccountController {
@@ -69,22 +69,30 @@ struct AccountController {
     func newAccount(req: Request) throws -> EventLoopFuture<Account.idOut> {
         let input = try req.content.decode(Account.postAccount.self)
         
-        //check to see if account already exists
-        return Account.query(on: req.db)
-            .filter(\.$email == input.email)
-            .first().map { checkAccount -> Account.idOut in
-                if checkAccount == nil {
-                    let id = UUID()
-                    let account = Account(id: id, fullName: input.fullName, email: input.email, password: input.password, type: input.type)
-                    return account.save(on: req.db)
-                        .map { Account.idOut(id: account.id!) }
-                } else {
-                    return Account.idOut(id: UUID("00000000-0000-0000-0000-000000000000")!)
-                }
-            }
+        let id = UUID()
+        let account = Account(id: id, fullName: input.fullName, phoneNumber: input.phoneNumber, age: input.age, publicKey: input.publicKey)
+        return account.save(on: req.db)
+            .map { Account.idOut(id: account.id!) }
         
         
     }
+    
+    //check whether or not someone else in the database had your ID in their partnerID column
+    func checkPartners(req: Request) throws -> EventLoopFuture<Account.partnerOut> {
+        let input = try req.content.decode(Account.postID.self)
+        return Account.query(on: req.db)
+            .filter(\.$partnerID == input.UUID).map { account in
+                if account == nil {
+                    return Account.partnerOut(ID: UUID("00000000-0000-0000-0000-000000000000")!, publicKey: nil)
+                } else {
+                    return Account.partnerOut(ID: UUID("00000000-0000-0000-0000-000000000000")!, publicKey: nil)
+                }
+                
+            }
+        
+    }
+    
+    /*
     
     func login(req: Request) throws -> EventLoopFuture<Account.idOut?> {
         guard let email = req.parameters.get("email", as: String.self) else {
@@ -112,6 +120,6 @@ struct AccountController {
       //  return Account.find(email, on: req.db)
         //    .unwrap(or: Abort(.notFound))
          //   .map { Account.loginCheck(password: $0.password, id: $0.id!)}
-    }
+    } */
 }
  
