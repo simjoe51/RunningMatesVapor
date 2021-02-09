@@ -1,12 +1,6 @@
 import Fluent
 import Vapor
 
-//Struct for login request
-struct Login: Content {
-    var email: String
-    var password: String
-}
-
 func routes(_ app: Application) throws {
     
     let accountController = AccountController()
@@ -18,14 +12,6 @@ func routes(_ app: Application) throws {
         Account.query(on: req.db).all()
     }
     
-    /*
-    app.get("login") { req -> EventLoopFuture<Account.idOut> in
-        return try accountController.login(req: req).map {idOut in
-                return Account.idOut(id: idOut!.id)
-        }
-    }
-    */
-    
     //MARK: Create New Account
     app.post("createaccount") { req -> EventLoopFuture<Account.idOut> in
         
@@ -36,12 +22,20 @@ func routes(_ app: Application) throws {
         return returnData
     }
     
-    //MARK: Check for user's new partner
-    app.post("checkPartner") { req -> EventLoopFuture<Account.partnerOut> in
-        print("Checking for user's new partners...")
-        let returnData = try accountController.checkPartners(req: req)
+    //MARK: Create Account with notification privileges
+    app.post("createaccountnotifs") { req -> EventLoopFuture<Account.idOut> in
+        print("creatign new account with notification privileges")
+        
+        let returnData = try accountController.newAccountNotifs(req: req)
         return returnData
     }
+    
+    //MARK: Check for user's new partner
+    //app.post("checkpartner") { req -> EventLoopFuture<Account.partnerOut> in
+      //  print("Checking for user's new partners...")
+       // let returnData = try accountController.checkPartners(req: req)
+       // return returnData
+    //}
     
     //app.post("getnew") { req ->}
 

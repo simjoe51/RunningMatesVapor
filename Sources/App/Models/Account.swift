@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  Account.swift
 //  
 //
 //  Created by Joseph Simeone on 12/6/20.
@@ -26,6 +26,10 @@ final class Account: Model, Content {
     var age: String
     @Field(key: "publicKey")
     var publicKey: String
+    @Field(key: "partnerID")
+    var partnerID: String
+    @Field(key: "deviceToken")
+    var deviceToken: String
     
     //creation method for new, empty account
     init() { }
@@ -43,7 +47,15 @@ final class Account: Model, Content {
         var publicKey: String
     }
     
-    //Struct to check for new partners
+    struct postAccountToken: Content {
+        var fullName: String
+        var phoneNumber: String
+        var age: String
+        var publicKey: String
+        var deviceToken: String
+    }
+    
+    //Struct to check for new partners and letters
     struct postID: Content {
         var UUID: Data
     }
@@ -54,7 +66,7 @@ final class Account: Model, Content {
         var publicKey: Data
     }
     
-    //Constructor for new account with all properties set
+    //Constructor for new account with all properties set but not notifs
     init(id: UUID?, fullName: String, phoneNumber: String, age: String, publicKey: String) {
         self.id = id!
         self.fullName = fullName
@@ -62,10 +74,21 @@ final class Account: Model, Content {
         self.age = age
         self.publicKey = publicKey
     }
+    
+    //constructor for new account with all properties including notification ID
+    init(id: UUID?, fullName: String, phoneNumber: String, age: String, publicKey: String, deviceToken: String) {
+        self.id = id!
+        self.fullName = fullName
+        self.phoneNumber = phoneNumber
+        self.age = age
+        self.publicKey = publicKey
+        self.deviceToken = deviceToken
+    }
+    
 }
 
 struct AccountController {
-    //Create new account. NEED TO CHECK IF AN ACCOUNT ALREADY EXISTS AND THROW ERROR IF SO
+    //Create new account
     func newAccount(req: Request) throws -> EventLoopFuture<Account.idOut> {
         let input = try req.content.decode(Account.postAccount.self)
         
@@ -73,11 +96,20 @@ struct AccountController {
         let account = Account(id: id, fullName: input.fullName, phoneNumber: input.phoneNumber, age: input.age, publicKey: input.publicKey)
         return account.save(on: req.db)
             .map { Account.idOut(id: account.id!) }
+    }
+    
+    //create new account that can receive notifications
+    func newAccountNotifs(req: Request) throws -> EventLoopFuture<Account.idOut> {
+        let input = try req.content.decode(Account.postAccountToken.self)
         
-        
+        let id = UUID()
+        let account = Account(id: id, fullName: input.fullName, phoneNumber: input.phoneNumber, age: input.age, publicKey: input.publicKey, deviceToken: input.deviceToken)
+        return account.save(on: req.db)
+            .map { Account.idOut(id: account.id!)}
     }
     
     //check whether or not someone else in the database had your ID in their partnerID column
+    /*
     func checkPartners(req: Request) throws -> EventLoopFuture<Account.partnerOut> {
         let input = try req.content.decode(Account.postID.self)
         return Account.query(on: req.db)
@@ -90,7 +122,7 @@ struct AccountController {
                 
             }
         
-    }
+    } */
     
     /*
     
